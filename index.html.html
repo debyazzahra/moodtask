@@ -1,0 +1,778 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MoodTask - AI Mood-Based Task Prioritizer</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+            color: #333;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+            color: white;
+        }
+
+        .header h1 {
+            font-size: 3rem;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .header p {
+            font-size: 1.2rem;
+            opacity: 0.9;
+        }
+
+        .main-grid {
+            display: grid;
+            grid-template-columns: 1fr 2fr;
+            gap: 30px;
+            margin-bottom: 30px;
+        }
+
+        .mood-analyzer, .task-manager {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            border: 1px solid rgba(255,255,255,0.2);
+        }
+
+        .mood-analyzer h2, .task-manager h2 {
+            margin-bottom: 20px;
+            color: #4a5568;
+            font-size: 1.5rem;
+        }
+
+        .mood-input {
+            width: 100%;
+            height: 120px;
+            border: 2px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 15px;
+            font-size: 16px;
+            resize: vertical;
+            transition: all 0.3s ease;
+            font-family: inherit;
+        }
+
+        .mood-input:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .mood-buttons {
+            display: flex;
+            gap: 10px;
+            margin: 20px 0;
+            flex-wrap: wrap;
+        }
+
+        .mood-btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s ease;
+            background: #f7fafc;
+            color: #4a5568;
+            border: 2px solid transparent;
+        }
+
+        .mood-btn:hover {
+            background: #667eea;
+            color: white;
+            transform: translateY(-2px);
+        }
+
+        .mood-btn.active {
+            background: #667eea;
+            color: white;
+            border-color: #4c51bf;
+        }
+
+        .analyze-btn {
+            width: 100%;
+            padding: 15px;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-bottom: 20px;
+        }
+
+        .analyze-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+        }
+
+        .mood-result {
+            padding: 20px;
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            border-radius: 12px;
+            color: white;
+            text-align: center;
+            margin-bottom: 20px;
+            display: none;
+        }
+
+        .mood-result.show {
+            display: block;
+            animation: slideIn 0.5s ease;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .task-form {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .task-input {
+            flex: 1;
+            padding: 12px;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            font-size: 14px;
+        }
+
+        .task-input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .add-task-btn {
+            padding: 12px 20px;
+            background: #48bb78;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .add-task-btn:hover {
+            background: #38a169;
+            transform: translateY(-1px);
+        }
+
+        .task-list {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .task-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 15px;
+            margin-bottom: 10px;
+            background: #f7fafc;
+            border-radius: 10px;
+            border-left: 4px solid #cbd5e0;
+            transition: all 0.3s ease;
+        }
+
+        .task-item:hover {
+            transform: translateX(5px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+
+        .task-item.high-priority {
+            border-left-color: #e53e3e;
+            background: linear-gradient(135deg, #fed7d7, #feb2b2);
+        }
+
+        .task-item.medium-priority {
+            border-left-color: #dd6b20;
+            background: linear-gradient(135deg, #feebc8, #fbd38d);
+        }
+
+        .task-item.low-priority {
+            border-left-color: #38a169;
+            background: linear-gradient(135deg, #c6f6d5, #9ae6b4);
+        }
+
+        .task-content {
+            flex: 1;
+        }
+
+        .task-text {
+            font-weight: 500;
+            margin-bottom: 5px;
+        }
+
+        .task-priority {
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .task-actions {
+            display: flex;
+            gap: 5px;
+        }
+
+        .delete-btn {
+            background: #e53e3e;
+            color: white;
+            border: none;
+            padding: 8px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 12px;
+            transition: all 0.3s ease;
+        }
+
+        .delete-btn:hover {
+            background: #c53030;
+            transform: scale(1.05);
+        }
+
+        .stats-section {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            border: 1px solid rgba(255,255,255,0.2);
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+        }
+
+        .stat-card {
+            text-align: center;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            border-radius: 15px;
+            transition: all 0.3s ease;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 30px rgba(102, 126, 234, 0.3);
+        }
+
+        .stat-number {
+            font-size: 2rem;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .stat-label {
+            font-size: 0.9rem;
+            opacity: 0.9;
+        }
+
+        .mood-history {
+            margin-top: 20px;
+            padding: 15px;
+            background: #f7fafc;
+            border-radius: 10px;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+
+        .mood-entry {
+            padding: 8px 0;
+            border-bottom: 1px solid #e2e8f0;
+            font-size: 14px;
+        }
+
+        .mood-entry:last-child {
+            border-bottom: none;
+        }
+
+        .timestamp {
+            color: #718096;
+            font-size: 12px;
+        }
+
+        @media (max-width: 768px) {
+            .main-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .header h1 {
+                font-size: 2rem;
+            }
+            
+            .mood-buttons {
+                justify-content: center;
+            }
+        }
+
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255,255,255,.3);
+            border-radius: 50%;
+            border-top-color: #fff;
+            animation: spin 1s ease-in-out infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <h1>🧠 MoodTask</h1>
+            <p>AI-Powered Mood-Based Task Prioritizer</p>
+        </header>
+
+        <div class="main-grid">
+            <div class="mood-analyzer">
+                <h2>🎭 Analisis Mood</h2>
+                <textarea 
+                    class="mood-input" 
+                    placeholder="Ceritakan bagaimana perasaan Anda hari ini, apa yang terjadi, atau apa yang sedang Anda pikirkan..."
+                    id="moodInput"
+                ></textarea>
+                
+                <div class="mood-buttons">
+                    <button class="mood-btn" data-mood="bahagia">😊 Bahagia</button>
+                    <button class="mood-btn" data-mood="sedih">😢 Sedih</button>
+                    <button class="mood-btn" data-mood="stres">😰 Stres</button>
+                    <button class="mood-btn" data-mood="lelah">😴 Lelah</button>
+                    <button class="mood-btn" data-mood="bersemangat">🔥 Bersemangat</button>
+                    <button class="mood-btn" data-mood="cemas">😟 Cemas</button>
+                </div>
+
+                <button class="analyze-btn" id="analyzeBtn">
+                    <span id="analyzeText">Analisis Mood Saya</span>
+                </button>
+
+                <div class="mood-result" id="moodResult">
+                    <h3 id="moodTitle">Mood Anda: Optimis</h3>
+                    <p id="moodDescription">Berdasarkan analisis, Anda sedang dalam kondisi yang baik untuk menyelesaikan tugas-tugas kreatif dan kolaboratif.</p>
+                    <p id="moodRecommendation"><strong>Rekomendasi:</strong> Fokus pada tugas yang membutuhkan kreativitas tinggi.</p>
+                </div>
+
+                <div class="mood-history" id="moodHistory">
+                    <h4>Riwayat Mood</h4>
+                    <div id="historyList">
+                        <p style="text-align: center; color: #718096;">Belum ada riwayat mood</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="task-manager">
+                <h2>📝 Manajemen Tugas</h2>
+                <div class="task-form">
+                    <input 
+                        type="text" 
+                        class="task-input" 
+                        placeholder="Tambahkan tugas baru..."
+                        id="taskInput"
+                    >
+                    <button class="add-task-btn" id="addTaskBtn">Tambah</button>
+                </div>
+
+                <div class="task-list" id="taskList">
+                    <div style="text-align: center; padding: 40px; color: #718096;">
+                        <p>Belum ada tugas. Tambahkan tugas pertama Anda!</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="stats-section">
+            <h2>📊 Statistik & Insights</h2>
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-number" id="totalTasks">0</div>
+                    <div class="stat-label">Total Tugas</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="highPriorityTasks">0</div>
+                    <div class="stat-label">Prioritas Tinggi</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="completedTasks">0</div>
+                    <div class="stat-label">Tugas Selesai</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="moodAnalyses">0</div>
+                    <div class="stat-label">Analisis Mood</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        class MoodTaskPrioritizer {
+            constructor() {
+                this.tasks = [];
+                this.moodHistory = [];
+                this.currentMood = null;
+                this.stats = {
+                    totalTasks: 0,
+                    highPriorityTasks: 0,
+                    completedTasks: 0,
+                    moodAnalyses: 0
+                };
+                
+                this.initializeEventListeners();
+                this.loadData();
+            }
+
+            initializeEventListeners() {
+                // Mood analysis
+                document.getElementById('analyzeBtn').addEventListener('click', () => this.analyzeMood());
+                
+                // Mood quick buttons
+                document.querySelectorAll('.mood-btn').forEach(btn => {
+                    btn.addEventListener('click', (e) => this.selectQuickMood(e.target));
+                });
+
+                // Task management
+                document.getElementById('addTaskBtn').addEventListener('click', () => this.addTask());
+                document.getElementById('taskInput').addEventListener('keypress', (e) => {
+                    if (e.key === 'Enter') this.addTask();
+                });
+            }
+
+            selectQuickMood(button) {
+                document.querySelectorAll('.mood-btn').forEach(btn => btn.classList.remove('active'));
+                button.classList.add('active');
+                
+                const mood = button.dataset.mood;
+                document.getElementById('moodInput').value = `Saya merasa ${mood} hari ini.`;
+            }
+
+            analyzeMood() {
+                const moodText = document.getElementById('moodInput').value.trim();
+                if (!moodText) {
+                    alert('Silakan masukkan deskripsi mood Anda terlebih dahulu.');
+                    return;
+                }
+
+                const analyzeBtn = document.getElementById('analyzeBtn');
+                const analyzeText = document.getElementById('analyzeText');
+                
+                // Show loading
+                analyzeText.innerHTML = '<span class="loading"></span> Menganalisis...';
+                analyzeBtn.disabled = true;
+
+                // Simulate AI analysis (in real app, this would call an AI API)
+                setTimeout(() => {
+                    const analysis = this.performMoodAnalysis(moodText);
+                    this.displayMoodResult(analysis);
+                    this.addToMoodHistory(moodText, analysis);
+                    this.reprioritizeTasks(analysis.mood);
+                    
+                    // Reset button
+                    analyzeText.textContent = 'Analisis Mood Saya';
+                    analyzeBtn.disabled = false;
+                    
+                    this.updateStats();
+                }, 2000);
+            }
+
+            performMoodAnalysis(text) {
+                // Simple mood analysis based on keywords (in real app, use actual AI)
+                const moodKeywords = {
+                    bahagia: ['senang', 'gembira', 'bahagia', 'excited', 'antusias', 'optimis'],
+                    sedih: ['sedih', 'kecewa', 'down', 'galau', 'murung'],
+                    stres: ['stres', 'tekanan', 'kewalahan', 'terburu', 'deadline'],
+                    lelah: ['lelah', 'capek', 'mengantuk', 'burnout', 'exhausted'],
+                    bersemangat: ['semangat', 'motivated', 'energi', 'produktif', 'fokus'],
+                    cemas: ['cemas', 'khawatir', 'anxious', 'nervous', 'takut']
+                };
+
+                let detectedMood = 'netral';
+                let maxScore = 0;
+
+                for (const [mood, keywords] of Object.entries(moodKeywords)) {
+                    let score = 0;
+                    keywords.forEach(keyword => {
+                        if (text.toLowerCase().includes(keyword)) score++;
+                    });
+                    if (score > maxScore) {
+                        maxScore = score;
+                        detectedMood = mood;
+                    }
+                }
+
+                const moodDescriptions = {
+                    bahagia: {
+                        description: 'Anda dalam kondisi mood yang positif dan siap menghadapi tantangan.',
+                        recommendation: 'Manfaatkan energi positif ini untuk tugas-tugas kreatif dan kolaborasi tim.',
+                        energy: 'tinggi',
+                        focus: 'kreatif'
+                    },
+                    sedih: {
+                        description: 'Anda sedang mengalami perasaan sedih. Ini normal dan akan berlalu.',
+                        recommendation: 'Fokus pada tugas-tugas rutin dan hindari keputusan besar hari ini.',
+                        energy: 'rendah',
+                        focus: 'rutin'
+                    },
+                    stres: {
+                        description: 'Tingkat stres Anda cukup tinggi. Perlu manajemen beban kerja.',
+                        recommendation: 'Prioritaskan tugas urgent dan delegasikan yang bisa ditunda.',
+                        energy: 'tinggi',
+                        focus: 'urgent'
+                    },
+                    lelah: {
+                        description: 'Anda terlihat kelelahan. Istirahat sangat penting untuk produktivitas.',
+                        recommendation: 'Fokus pada tugas-tugas mudah dan jadwalkan istirahat secara teratur.',
+                        energy: 'rendah',
+                        focus: 'mudah'
+                    },
+                    bersemangat: {
+                        description: 'Energi dan motivasi Anda sangat tinggi hari ini!',
+                        recommendation: 'Waktu yang tepat untuk menyelesaikan tugas-tugas sulit dan menantang.',
+                        energy: 'sangat tinggi',
+                        focus: 'menantang'
+                    },
+                    cemas: {
+                        description: 'Anda sedang merasa cemas. Fokus pada hal-hal yang bisa dikontrol.',
+                        recommendation: 'Mulai dengan tugas kecil untuk membangun momentum dan kepercayaan diri.',
+                        energy: 'sedang',
+                        focus: 'kecil'
+                    },
+                    netral: {
+                        description: 'Mood Anda dalam kondisi seimbang dan stabil.',
+                        recommendation: 'Kondisi yang baik untuk menyelesaikan berbagai jenis tugas.',
+                        energy: 'sedang',
+                        focus: 'seimbang'
+                    }
+                };
+
+                return {
+                    mood: detectedMood,
+                    ...moodDescriptions[detectedMood],
+                    confidence: Math.min(90, Math.max(60, maxScore * 15 + 50))
+                };
+            }
+
+            displayMoodResult(analysis) {
+                document.getElementById('moodTitle').textContent = `Mood Anda: ${analysis.mood.charAt(0).toUpperCase() + analysis.mood.slice(1)}`;
+                document.getElementById('moodDescription').textContent = analysis.description;
+                document.getElementById('moodRecommendation').innerHTML = `<strong>Rekomendasi:</strong> ${analysis.recommendation}`;
+                
+                const resultDiv = document.getElementById('moodResult');
+                resultDiv.classList.add('show');
+                
+                this.currentMood = analysis;
+            }
+
+            addToMoodHistory(text, analysis) {
+                const entry = {
+                    timestamp: new Date(),
+                    text: text.substring(0, 100) + (text.length > 100 ? '...' : ''),
+                    mood: analysis.mood,
+                    confidence: analysis.confidence
+                };
+                
+                this.moodHistory.unshift(entry);
+                if (this.moodHistory.length > 10) this.moodHistory.pop();
+                
+                this.updateMoodHistoryDisplay();
+                this.saveData();
+            }
+
+            updateMoodHistoryDisplay() {
+                const historyList = document.getElementById('historyList');
+                
+                if (this.moodHistory.length === 0) {
+                    historyList.innerHTML = '<p style="text-align: center; color: #718096;">Belum ada riwayat mood</p>';
+                    return;
+                }
+
+                historyList.innerHTML = this.moodHistory.map(entry => `
+                    <div class="mood-entry">
+                        <div><strong>${entry.mood.charAt(0).toUpperCase() + entry.mood.slice(1)}</strong> (${entry.confidence}%)</div>
+                        <div style="margin: 5px 0;">${entry.text}</div>
+                        <div class="timestamp">${entry.timestamp.toLocaleString('id-ID')}</div>
+                    </div>
+                `).join('');
+            }
+
+            addTask() {
+                const taskInput = document.getElementById('taskInput');
+                const taskText = taskInput.value.trim();
+                
+                if (!taskText) return;
+
+                const task = {
+                    id: Date.now(),
+                    text: taskText,
+                    priority: this.calculateTaskPriority(taskText),
+                    createdAt: new Date(),
+                    completed: false
+                };
+
+                this.tasks.push(task);
+                taskInput.value = '';
+                
+                this.updateTaskList();
+                this.updateStats();
+                this.saveData();
+            }
+
+            calculateTaskPriority(taskText) {
+                if (!this.currentMood) return 'medium';
+
+                const urgentKeywords = ['urgent', 'deadline', 'segera', 'penting', 'asap', 'today'];
+                const easyKeywords = ['mudah', 'simple', 'quick', 'cepat', 'ringan'];
+                const hardKeywords = ['sulit', 'kompleks', 'challenging', 'ribet', 'berat'];
+
+                const isUrgent = urgentKeywords.some(keyword => 
+                    taskText.toLowerCase().includes(keyword)
+                );
+                const isEasy = easyKeywords.some(keyword => 
+                    taskText.toLowerCase().includes(keyword)
+                );
+                const isHard = hardKeywords.some(keyword => 
+                    taskText.toLowerCase().includes(keyword)
+                );
+
+                // Priority logic based on mood and task characteristics
+                if (this.currentMood.energy === 'rendah') {
+                    return isUrgent ? 'high' : (isEasy ? 'medium' : 'low');
+                } else if (this.currentMood.energy === 'tinggi' || this.currentMood.energy === 'sangat tinggi') {
+                    return isHard ? 'high' : (isUrgent ? 'high' : 'medium');
+                } else {
+                    return isUrgent ? 'high' : 'medium';
+                }
+            }
+
+            reprioritizeTasks(mood) {
+                this.tasks.forEach(task => {
+                    if (!task.completed) {
+                        task.priority = this.calculateTaskPriority(task.text);
+                    }
+                });
+                
+                this.updateTaskList();
+            }
+
+            updateTaskList() {
+                const taskList = document.getElementById('taskList');
+                
+                if (this.tasks.length === 0) {
+                    taskList.innerHTML = `
+                        <div style="text-align: center; padding: 40px; color: #718096;">
+                            <p>Belum ada tugas. Tambahkan tugas pertama Anda!</p>
+                        </div>
+                    `;
+                    return;
+                }
+
+                // Sort tasks by priority and creation date
+                const priorityOrder = { 'high': 3, 'medium': 2, 'low': 1 };
+                const activeTasks = this.tasks.filter(task => !task.completed)
+                    .sort((a, b) => {
+                        if (priorityOrder[a.priority] !== priorityOrder[b.priority]) {
+                            return priorityOrder[b.priority] - priorityOrder[a.priority];
+                        }
+                        return new Date(b.createdAt) - new Date(a.createdAt);
+                    });
+
+                taskList.innerHTML = activeTasks.map(task => `
+                    <div class="task-item ${task.priority}-priority">
+                        <div class="task-content">
+                            <div class="task-text">${task.text}</div>
+                            <div class="task-priority">${task.priority} priority</div>
+                        </div>
+                        <div class="task-actions">
+                            <button class="delete-btn" onclick="moodTaskApp.deleteTask(${task.id})">
+                                Hapus
+                            </button>
+                        </div>
+                    </div>
+                `).join('');
+            }
+
+            deleteTask(taskId) {
+                this.tasks = this.tasks.filter(task => task.id !== taskId);
+                this.updateTaskList();
+                this.updateStats();
+                this.saveData();
+            }
+
+            updateStats() {
+                this.stats.totalTasks = this.tasks.length;
+                this.stats.highPriorityTasks = this.tasks.filter(task => 
+                    task.priority === 'high' && !task.completed
+                ).length;
+                this.stats.completedTasks = this.tasks.filter(task => task.completed).length;
+                this.stats.moodAnalyses = this.moodHistory.length;
+
+                document.getElementById('totalTasks').textContent = this.stats.totalTasks;
+                document.getElementById('highPriorityTasks').textContent = this.stats.highPriorityTasks;
+                document.getElementById('completedTasks').textContent = this.stats.completedTasks;
+                document.getElementById('moodAnalyses').textContent = this.stats.moodAnalyses;
+            }
+
+            saveData() {
+                const data = {
+                    tasks: this.tasks,
+                    moodHistory: this.moodHistory,
+                    currentMood: this.currentMood,
+                    stats: this.stats
+                };
+                // In a real app, this would save to a backend
+                console.log('Data saved:', data);
+            }
+
+            loadData() {
+                // In a real app, this would load from a backend
+                this.updateTaskList();
+                this.updateMoodHistoryDisplay();
+                this.updateStats();
+            }
+        }
+
+        // Initialize the application
+        const moodTaskApp = new MoodTaskPrioritizer();
+    </script>
+</body>
+</html>
